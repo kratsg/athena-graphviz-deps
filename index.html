@@ -12,27 +12,85 @@
 <body>
 <div id="cy"></div>
 <script>
-fetch('packages_graph.json')
+let graphData = {};
+
+fetch('packages_graph_hier.json')
   .then(res => res.json())
   .then(data => {
-    const cy = cytoscape({
+    graphData = data;
+
+    // 1️⃣ Detect roots (nodes with no incoming edges)
+    let incoming = {};
+    graphData.edges.forEach(e => { incoming[e.to] = (incoming[e.to] || 0) + 1; });
+    let rootNodes = Object.values(graphData.nodes)
+      .filter(n => !incoming[n.id])
+      .map(n => ({ data: { id: n.id, label: n.label } }));
+
+    console.log("Root nodes:", rootNodes.map(n => n.data.id));
+
+    // 2️⃣ Initialize Cytoscape with root nodes
+    let cy = cytoscape({
       container: document.getElementById('cy'),
-      elements: [
-        ...data.nodes.map(n => ({ data: { id: n.id, label: n.label } })),
-        ...data.edges.map(e => ({ data: { source: e.from, target: e.to } }))
-      ],
-      layout: { name: 'cose', animate: false },
+      elements: rootNodes,
       style: [
-        { selector: 'node', style: { 'label': 'data(label)', 'font-size': 6 } },
-        { selector: 'edge', style: { 'width': 0.5, 'line-color': '#888' } }
+        { selector: 'node', style: {
+            'shape': 'roundrectangle',
+            'width': 'label',
+            'height': 'label',
+            'padding': 10,
+            'label': 'data(label)',
+            'text-valign': 'center',
+            'text-halign': 'center',
+            'background-color': '#1f77b4',
+            'color': '#fff',
+            'font-size': 10,
+            'text-wrap': 'wrap'
+        }},
+        { selector: 'edge', style: { 'width': 1, 'line-color': '#888' } }
       ]
     });
 
-    // Example: click to expand/collapse (needs actual clustering logic)
-    cy.on('tap', 'node', function(evt){
-      const node = evt.target;
-      console.log('Clicked node', node.id());
-      // Implement expand/collapse here
+    // 3️⃣ Initial layout: grid for disconnected roots
+    cy.layout({
+      name: 'grid',
+      padding: 50,
+      avoidOverlap: true,
+      fit: true,
+      animate: false
+    }).run();
+
+    // 4️⃣ Incremental expansion on click/tap
+    cy.on('tap', 'node', function(evt) {
+      let nodeId = evt.target.id();
+      let node = graphData.nodes[nodeId];
+
+      if (!node.children || node.children.length === 0) return; // no children
+      if (node.expanded) return; // already expanded
+      node.expanded = true;
+
+      // Add child nodes
+      let childNodes = node.children.map(cid => {
+        let c = graphData.nodes[cid];
+        return { data: { id: cid, label: c.label } };
+      });
+      let newNodes = cy.add(childNodes);
+
+      // Add edges
+      let newEdges = cy.add(node.children.map(cid => ({ data: { source: nodeId, target: cid } })));
+
+      // Layout only the clicked node + new children
+      let layoutNodes = cy.collection([evt.target]).union(newNodes);
+      layoutNodes.layout({
+        name: 'breadthfirst',
+        directed: true,
+        roots: [nodeId],
+        padding: 50,
+        spacingFactor: 2,
+        fit: false,               // keep current zoom
+        avoidOverlap: true,
+        animate: false,
+        nodeDimensionsIncludeLabels: true
+      }).run();
     });
   });
 </script>
