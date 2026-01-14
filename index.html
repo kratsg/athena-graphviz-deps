@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Athena Dependency Graph</title>
+<style>
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #111;
+}
+#viewer {
+  width: 100%;
+  height: 100%;
+}
+</style>
+</head>
+<body>
+
+<div id="viewer"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+<script>
+fetch("deps_dot_condor.svg")
+  .then(r => r.text())
+  .then(svg => {
+    document.getElementById("viewer").innerHTML = svg;
+    svgPanZoom("svg", {
+      zoomEnabled: true,
+      panEnabled: true,
+      controlIconsEnabled: true,
+      fit: true,
+      center: true,
+      minZoom: 0.02,
+      maxZoom: 50
+    });
+  });
+</script>
+
+</body>
+</html>
