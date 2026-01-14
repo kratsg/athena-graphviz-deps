@@ -37,5 +37,18 @@ fetch("deps_dot_condor.svg")
   });
 </script>
 
+<input id="search" placeholder="Search target..."
+ style="position:fixed; top:10px; left:10px; z-index:10; padding:4px">
+
+<script>
+document.getElementById("search").addEventListener("input", e => {
+  const q = e.target.value.toLowerCase();
+  document.querySelectorAll("g.node").forEach(n => {
+    const t = n.textContent.toLowerCase();
+    n.style.opacity = t.includes(q) ? "1" : "0.1";
+  });
+});
+</script>
+
 </body>
 </html>
