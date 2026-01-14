@@ -1,54 +1,40 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="utf-8">
-<title>Athena Dependency Graph</title>
-<style>
-html, body {
-  margin: 0;
-  height: 100%;
-  background: #111;
-}
-#viewer {
-  width: 100%;
-  height: 100%;
-}
-</style>
+  <meta charset="utf-8">
+  <title>Athena Dependency Graph</title>
+  <style>
+    html, body { margin: 0; height: 100%; }
+    #cy { width: 100%; height: 100%; display: block; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/cytoscape/dist/cytoscape.min.js"></script>
 </head>
 <body>
-
-<div id="viewer"></div>
-
-<script src="https://cdn.jsdelivr.net/npm/svg-pan-zoom@3.6.1/dist/svg-pan-zoom.min.js"></script>
+<div id="cy"></div>
 <script>
-fetch("deps_dot_condor.svg")
-  .then(r => r.text())
-  .then(svg => {
-    document.getElementById("viewer").innerHTML = svg;
-    svgPanZoom("svg", {
-      zoomEnabled: true,
-      panEnabled: true,
-      controlIconsEnabled: true,
-      fit: true,
-      center: true,
-      minZoom: 0.02,
-      maxZoom: 50
+fetch('packages_graph.json')
+  .then(res => res.json())
+  .then(data => {
+    const cy = cytoscape({
+      container: document.getElementById('cy'),
+      elements: [
+        ...data.nodes.map(n => ({ data: { id: n.id, label: n.label } })),
+        ...data.edges.map(e => ({ data: { source: e.from, target: e.to } }))
+      ],
+      layout: { name: 'cose', animate: false },
+      style: [
+        { selector: 'node', style: { 'label': 'data(label)', 'font-size': 6 } },
+        { selector: 'edge', style: { 'width': 0.5, 'line-color': '#888' } }
+      ]
+    });
+
+    // Example: click to expand/collapse (needs actual clustering logic)
+    cy.on('tap', 'node', function(evt){
+      const node = evt.target;
+      console.log('Clicked node', node.id());
+      // Implement expand/collapse here
     });
   });
 </script>
-
-<input id="search" placeholder="Search target..."
- style="position:fixed; top:10px; left:10px; z-index:10; padding:4px">
-
-<script>
-document.getElementById("search").addEventListener("input", e => {
-  const q = e.target.value.toLowerCase();
-  document.querySelectorAll("g.node").forEach(n => {
-    const t = n.textContent.toLowerCase();
-    n.style.opacity = t.includes(q) ? "1" : "0.1";
-  });
-});
-</script>
-
 </body>
 </html>
